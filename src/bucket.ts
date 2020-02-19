@@ -1,12 +1,11 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as fs from 'fs';
-import * as utils from 'util';
 import * as path from 'path';
 import * as mime from 'mime';
 
-async function* parseFolder(dir: string): AsyncGenerator<string> {
-    const dirents = await utils.promisify(fs.readdir)(dir, { withFileTypes: true });
+function* parseFolder(dir: string): Generator<string> {
+    const dirents = fs.readdirSync(dir, { withFileTypes: true })
     for (const dirent of dirents) {
         const res = path.resolve(dir, dirent.name);
         if (dirent.isDirectory()) {
@@ -17,32 +16,34 @@ async function* parseFolder(dir: string): AsyncGenerator<string> {
     }
 }
 
-async function* createS3Objects(folder: string, bucket: aws.s3.Bucket): AsyncGenerator<aws.s3.BucketObject> {
-    for await (const filePath of parseFolder(folder)) {
-        console.log(fs.statSync(filePath).size)
-        yield new aws.s3.BucketObject(
-            filePath.split(path.sep).pop() || filePath, {
+function* createS3Objects(folder: string, bucket: aws.s3.Bucket): Generator<aws.s3.BucketObject> {
+    for (const filePath of parseFolder(folder)) {
+        const fileName = filePath.split(path.sep).pop() || filePath;
+        const relativeFileName = filePath.replace(path.resolve(folder) + "/", "");
+        yield new aws.s3.BucketObject(fileName, {
             bucket,
+            key: relativeFileName,
             acl: 'public-read',
             source: new pulumi.asset.FileAsset(filePath),
             contentType: mime.getType(filePath) || undefined,
         }, {
             parent: bucket
-        }
-        )
+        })
     }
 }
 
-async function createBucketFromFolder(folder: string, parent?: pulumi.ComponentResource): Promise<{ bucket: aws.s3.Bucket, objects: aws.s3.BucketObject[] }> {
+function createBucketFromFolder(folder: string, domainName: string, parent?: pulumi.ComponentResource): { bucket: aws.s3.Bucket, objects: aws.s3.BucketObject[] } {
     let objects = [];
-    let siteBucket = new aws.s3.Bucket("crm-webkit-bucket", {
+    let siteBucket = new aws.s3.Bucket("websiteBucket", {
+        bucket: domainName,
+        acl: "public-read",
         website: {
             indexDocument: 'index.html'
         },
     }, {
         parent
     });
-    for await (const object of createS3Objects(folder, siteBucket)) {
+    for (const object of createS3Objects(folder, siteBucket)) {
         objects.push(object)
     }
     return { bucket: siteBucket, objects };

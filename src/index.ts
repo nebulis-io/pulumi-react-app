@@ -2,6 +2,8 @@ import * as aws from '@pulumi/aws';
 import * as pulumi from '@pulumi/pulumi';
 import { createBucketFromFolder } from './bucket';
 import { createCertificate } from './certificate';
+import { createDistribution } from './cloudfront';
+import { createAliasRecord } from './route53';
 
 interface ReactAppArgs {
     path: string;
@@ -11,29 +13,45 @@ interface ReactAppArgs {
 
 class ReactApp extends pulumi.ComponentResource {
 
-    bucket: aws.s3.Bucket;
-    objects: aws.s3.BucketObject[];
-    certificateArn: string;
+    siteBucket: aws.s3.Bucket;
+    logsBucket: aws.s3.Bucket;
+    siteObjects: aws.s3.BucketObject[];
+    distribution: aws.cloudfront.Distribution;
+    aliasRecord: aws.route53.Record;
 
     constructor(appName: string, args: ReactAppArgs, opts?: pulumi.ComponentResourceOptions) {
         super("nebulis:ReactApp", appName, {}, opts);
 
-        createBucketFromFolder(args.path, this)
-            .then(({ bucket, objects }) => {
-                this.bucket = bucket;
-                this.objects = objects;
-                return pulumi.output(args.certificateArn) || createCertificate(args.domainName).arn
-            }).then(certificateArn => {
-                return { certificateArn }
-            }).then(({ certificateArn }) => {
-                certificateArn.apply(
-                    arn => this.registerOutputs({
-                        bucket: this.bucket,
-                        objects: this.objects,
-                        certificateArn: arn
-                    })
-                );
+        const { bucket: siteBucket, objects: siteObjects } = createBucketFromFolder(args.path, args.domainName, this);
+
+        const certificateArn = args.certificateArn ? pulumi.output(args.certificateArn) : createCertificate(args.domainName, this).arn;
+
+        const logsBucket = new aws.s3.Bucket("requestLogs", {
+            bucket: `${args.domainName}-logs`,
+            acl: "private",
+        }, {
+            parent: this
+        });
+
+        const distribution = createDistribution(args.domainName, siteBucket, logsBucket, certificateArn, this);
+
+        const aliasRecord = createAliasRecord(args.domainName, distribution, this);
+
+        this.siteBucket = siteBucket;
+        this.logsBucket = logsBucket;
+        this.siteObjects = siteObjects
+        this.distribution = distribution;
+        this.aliasRecord = aliasRecord;
+
+        certificateArn.apply(
+            arn => this.registerOutputs({
+                bucket: this.siteBucket,
+                objects: this.siteObjects,
+                distribution: this.distribution,
+                aliasRecord: this.aliasRecord,
+                certificateArn: arn
             })
+        );
     }
 }
 

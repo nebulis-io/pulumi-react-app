@@ -20,16 +20,21 @@ const getDomainAndSubdomain = (domainName: string): { subdomain: string, parentD
 }
 
 
-function createCertificate(domainName: string): aws.acm.Certificate {
+function createCertificate(domainName: string, parent?: pulumi.ComponentResource): aws.acm.Certificate {
     const eastRegion = new aws.Provider("east", {
         profile: aws.config.profile,
         region: "us-east-1", // Per AWS, ACM certificate must be in the us-east-1 region.
+    }, {
+        parent
     });
 
     const certificate = new aws.acm.Certificate("certificate", {
         domainName,
         validationMethod: "DNS",
-    }, { provider: eastRegion });
+    }, {
+        parent,
+        provider: eastRegion
+    });
 
     const domainParts = getDomainAndSubdomain(domainName);
     const hostedZoneId = aws.route53.getZone({ name: domainParts.parentDomain }, { async: true }).then(zone => zone.zoneId);
@@ -44,6 +49,8 @@ function createCertificate(domainName: string): aws.acm.Certificate {
         type: certificate.domainValidationOptions[0].resourceRecordType,
         records: [certificate.domainValidationOptions[0].resourceRecordValue],
         ttl: 600,
+    }, {
+        parent
     });
 
     /**
@@ -58,9 +65,9 @@ function createCertificate(domainName: string): aws.acm.Certificate {
     const certificateValidation = new aws.acm.CertificateValidation("certificateValidation", {
         certificateArn: certificate.arn,
         validationRecordFqdns: [certificateValidationDomain.fqdn],
-    }, { provider: eastRegion });
+    }, { parent, provider: eastRegion });
 
     return certificate;
 }
 
-export { createCertificate };
+export { createCertificate, getDomainAndSubdomain };
