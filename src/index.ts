@@ -4,6 +4,7 @@ import { createBucketFromFolder } from './bucket';
 import { createCertificate } from './certificate';
 import { createDistribution } from './cloudfront';
 import { createAliasRecord } from './route53';
+import { execSync } from 'child_process';
 
 interface ReactAppArgs {
     path: string;
@@ -22,7 +23,9 @@ class ReactApp extends pulumi.ComponentResource {
     constructor(appName: string, args: ReactAppArgs, opts?: pulumi.ComponentResourceOptions) {
         super("nebulis:ReactApp", appName, {}, opts);
 
-        const { bucket: siteBucket, objects: siteObjects } = createBucketFromFolder(args.path, args.domainName, this);
+        const output = execSync(`npm --prefix ${args.path} install && npm --prefix ${args.path} run build`);
+
+        const { bucket: siteBucket, objects: siteObjects } = createBucketFromFolder(`${args.path}/build`, args.domainName, this);
 
         const certificateArn = args.certificateArn ? pulumi.output(args.certificateArn) : createCertificate(args.domainName, this).arn;
 
