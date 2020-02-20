@@ -18,9 +18,8 @@ function* parseFolder(dir: string): Generator<string> {
 
 function* createS3Objects(folder: string, bucket: aws.s3.Bucket): Generator<aws.s3.BucketObject> {
     for (const filePath of parseFolder(folder)) {
-        const fileName = filePath.split(path.sep).pop() || filePath;
         const relativeFileName = filePath.replace(path.resolve(folder) + "/", "");
-        yield new aws.s3.BucketObject(fileName, {
+        yield new aws.s3.BucketObject(relativeFileName, {
             bucket,
             key: relativeFileName,
             acl: 'public-read',
