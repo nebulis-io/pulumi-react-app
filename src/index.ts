@@ -23,7 +23,8 @@ class ReactApp extends pulumi.ComponentResource {
     constructor(appName: string, args: ReactAppArgs, opts?: pulumi.ComponentResourceOptions) {
         super("nebulis:ReactApp", appName, {}, opts);
 
-        const output = execSync(`npm --prefix ${args.path} install && npm --prefix ${args.path} run build`);
+        execSync(`npm --prefix ${args.path} install`);
+        execSync(`npm --prefix ${args.path} run build`);
 
         const { bucket: siteBucket, objects: siteObjects } = createBucketFromFolder(`${args.path}/build`, args.domainName, this);
 
