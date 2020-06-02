@@ -2,6 +2,7 @@ import * as aws from '@pulumi/aws';
 import * as pulumi from '@pulumi/pulumi';
 
 
+
 function createDistribution(domainName: string, siteBucket: aws.s3.Bucket, logsBucket: aws.s3.Bucket, certificateArn: pulumi.Output<string>, parent?: pulumi.ComponentResource): aws.cloudfront.Distribution {
 
     const distributionArgs: aws.cloudfront.DistributionArgs = certificateArn.apply(cert => {

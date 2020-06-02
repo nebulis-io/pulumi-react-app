@@ -1,4 +1,5 @@
 {
+
     "compilerOptions": {
         "strict": true,
         "outDir": "bin",

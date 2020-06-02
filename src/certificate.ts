@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 
+
 const getDomainAndSubdomain = (domainName: string): { subdomain: string, parentDomain: string } => {
     const parts = domainName.split(".");
     if (parts.length < 2) {

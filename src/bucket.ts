@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as mime from 'mime';
 
+
 function* parseFolder(dir: string): Generator<string> {
     const dirents = fs.readdirSync(dir, { withFileTypes: true })
     for (const dirent of dirents) {
