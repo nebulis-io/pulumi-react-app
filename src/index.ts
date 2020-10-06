@@ -1,63 +1,43 @@
 import * as aws from '@pulumi/aws';
 import * as pulumi from '@pulumi/pulumi';
-import { createBucketFromFolder } from './bucket';
-import { createCertificate } from './certificate';
-import { createDistribution } from './cloudfront';
-import { createAliasRecord } from './route53';
-import { execSync } from 'child_process';
+import { S3Folder } from './s3folder';
+import * as utils from "./utils";
 
 
-interface ReactAppArgs {
+interface S3ReactAppArgs {
+    /**
+     * Path for react app.
+     */
     path: string;
-    domainName: string;
-    certificateArn?: string;
+
+    /**
+     * Environnement variables to be passed in react build.
+     * 
+     * It will automatically prepend REACT_APP_
+     */
+    env?: { [name: string]: string | pulumi.Output<string> }
 }
 
-class ReactApp extends pulumi.ComponentResource {
+class S3ReactApp extends pulumi.ComponentResource {
 
-    siteBucket: aws.s3.Bucket;
-    logsBucket: aws.s3.Bucket;
-    siteObjects: aws.s3.BucketObject[];
-    distribution: aws.cloudfront.Distribution;
-    aliasRecord: aws.route53.Record;
+    bucket?: pulumi.Output<S3Folder>;
+    assetArchive: pulumi.Output<pulumi.asset.AssetArchive>;
 
-    constructor(appName: string, args: ReactAppArgs, opts?: pulumi.ComponentResourceOptions) {
+    constructor(appName: string, args: S3ReactAppArgs, opts?: pulumi.ComponentResourceOptions) {
         super("nebulis:ReactApp", appName, {}, opts);
-
-        execSync(`npm --prefix ${args.path} install`);
-        execSync(`npm --prefix ${args.path} run build`);
-
-        const { bucket: siteBucket, objects: siteObjects } = createBucketFromFolder(`${args.path}/build`, args.domainName, this);
-
-        const certificateArn = args.certificateArn ? pulumi.output(args.certificateArn) : createCertificate(args.domainName, this).arn;
-
-        const logsBucket = new aws.s3.Bucket("requestLogs", {
-            bucket: `${args.domainName}-logs`,
-            acl: "private",
+        this.assetArchive = utils.packageReactWebapp(`${args.path}`, args.env);
+        this.bucket = pulumi.output(new S3Folder(appName, {
+            path: `${args.path}/build`,
+            assets: this.assetArchive.assets
         }, {
             parent: this
-        });
-
-        const distribution = createDistribution(args.domainName, siteBucket, logsBucket, certificateArn, this);
-
-        const aliasRecord = createAliasRecord(args.domainName, distribution, this);
-
-        this.siteBucket = siteBucket;
-        this.logsBucket = logsBucket;
-        this.siteObjects = siteObjects
-        this.distribution = distribution;
-        this.aliasRecord = aliasRecord;
-
-        certificateArn.apply(
-            arn => this.registerOutputs({
-                bucket: this.siteBucket,
-                objects: this.siteObjects,
-                distribution: this.distribution,
-                aliasRecord: this.aliasRecord,
-                certificateArn: arn
-            })
-        );
+        }));
+        this.registerOutputs({
+            bucket: this.bucket,
+            assetArchive: this.assetArchive
+        })
     }
 }
 
-export { ReactApp };
+export { S3ReactApp, S3Folder, utils };
+
