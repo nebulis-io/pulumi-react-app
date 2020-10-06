@@ -3,7 +3,7 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   },
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "Pulumi component to easily deploy React Apps",
   "scripts": {
     "build": "tsc",
@@ -14,7 +14,7 @@
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NebulisIO/pulumi-react-app.git"
+    "url": "git+https://github.com/nebulis-io/pulumi-react-app.git"
   },
   "keywords": [
     "pulumi",
@@ -25,9 +25,9 @@
   "author": "thomas.nicollet@nebulis.io",
   "license": "GPLv3",
   "bugs": {
-    "url": "https://github.com/NebulisIO/pulumi-react-app/issues"
+    "url": "https://github.com/nebulis-io/pulumi-react-app/issues"
   },
-  "homepage": "https://github.com/NebulisIO/pulumi-react-app#readme",
+  "homepage": "https://github.com/nebulis-io/pulumi-react-app#readme",
   "devDependencies": {
     "@pulumi/aws": "^1.31.0",
     "@pulumi/pulumi": "^1.14.1",
