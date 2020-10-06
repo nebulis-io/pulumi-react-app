@@ -20,7 +20,7 @@ export const packageReactWebapp = (webappFolder: string, env: { [name: string]: 
 
     return pulumi.all(Object.values(env)).apply(values => values.map((value, idx) => `REACT_APP_${Object.keys(env)[idx]}="${value}"`).join(" ")).apply(
         packagedEnv => {
-            execSync(`(cd ${webappFolder} && rm -rf node_modules build && npm install --only=prod && ${packagedEnv} npm run build)`);
+            execSync(`(cd ${webappFolder} && rm -rf node_modules build package-lock.json && npm install --only=prod && ${packagedEnv} npm run build)`);
             return new pulumi.asset.AssetArchive({
                 '.': new pulumi.asset.FileArchive(`${webappFolder}/build`)
             })
