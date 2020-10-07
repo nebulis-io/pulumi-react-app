@@ -30,7 +30,9 @@ export class S3Folder extends pulumi.ComponentResource {
         const siteBucket = new aws.s3.Bucket(componentName, {
             website: {
                 indexDocument: "index.html",
+                errorDocument: "index.html"
             },
+            forceDestroy: true
         }, {
             parent: this
         });
