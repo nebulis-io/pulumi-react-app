@@ -64,6 +64,11 @@ interface SecuredReactAppArgs {
      * Domain used for the application
      */
     domain: string | pulumi.Output<string>
+
+    /**
+     * Certificate ARN if one is already in use
+     */
+    certificateArn?: string | pulumi.Output<string>
 }
 
 
@@ -85,6 +90,7 @@ class SecuredReactApp extends pulumi.ComponentResource {
         this.distribution = pulumi.output(new ReactAppDistribution(appName, {
             contentBucket: this.s3app.bucket.bucket,
             ttl: 60 * 10,
+            certificateArn: args.certificateArn,
             ...args
         }, {
             parent: this
