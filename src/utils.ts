@@ -28,3 +28,21 @@ export const packageReactWebapp = (webappFolder: string, env: { [name: string]: 
     );
 
 }
+
+export const getDomainAndSubdomain = (domain: string | pulumi.Output<string>): pulumi.Output<{ subdomain: string, parentDomain: string }> => {
+    return pulumi.output(domain).apply((domain: string) => {
+        const parts = domain.split(".");
+        if (parts.length < 2) {
+            throw new Error(`No TLD found on ${domain}`);
+        }
+        if (parts.length === 2) {
+            return { subdomain: "", parentDomain: domain };
+        }
+        const subdomain = parts[0];
+        parts.shift();
+        return {
+            subdomain,
+            parentDomain: parts.join(".") + ".",
+        };
+    })
+}

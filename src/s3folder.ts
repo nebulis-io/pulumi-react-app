@@ -20,28 +20,31 @@ export interface S3FolderArgs {
  * Define a component for serving a static website on S3
  */
 export class S3Folder extends pulumi.ComponentResource {
-    bucketName?: pulumi.Output<string>;
-    websiteUrl?: pulumi.Output<string>;
+    bucket: pulumi.Output<aws.s3.Bucket>;
+    bucketName: pulumi.Output<string>;
+    websiteUrl: pulumi.Output<string>;
     objects?: pulumi.Output<aws.s3.BucketObject[]>;
 
     constructor(componentName: string, args: S3FolderArgs, opts?: pulumi.ComponentResourceOptions) {
         super("nebulis:S3Folder", componentName, {}, opts);
 
-        const siteBucket = new aws.s3.Bucket(componentName, {
-            website: {
-                indexDocument: "index.html",
-                errorDocument: "index.html"
-            },
-            forceDestroy: true
-        }, {
-            parent: this
-        });
+        this.bucket = pulumi.output(
+            new aws.s3.Bucket(componentName, {
+                website: {
+                    indexDocument: "index.html",
+                    errorDocument: "index.html"
+                },
+                forceDestroy: true
+            }, {
+                parent: this
+            })
+        );
 
         const objects = []
         const pathFilter = args.path.replace("./", "") + "/";
         for (const filePath of scanDirectory(args.path)) {
             const object = new aws.s3.BucketObject(filePath, {
-                bucket: siteBucket,
+                bucket: this.bucket,
                 source: new pulumi.asset.FileAsset(filePath),
                 key: filePath.replace(pathFilter, ""),
                 contentType: mime.getType(filePath) || undefined,
@@ -53,15 +56,16 @@ export class S3Folder extends pulumi.ComponentResource {
         this.objects = pulumi.output(objects);
 
         const bucketPolicy = new aws.s3.BucketPolicy("bucketPolicy", {
-            bucket: siteBucket.bucket,
-            policy: siteBucket.bucket.apply(this.publicReadPolicyForBucket),
+            bucket: this.bucket.bucket,
+            policy: this.bucket.bucket.apply(this.publicReadPolicyForBucket),
         }, {
             parent: this
         });
-        this.bucketName = siteBucket.bucket;
-        this.websiteUrl = siteBucket.websiteEndpoint;
-        
+        this.bucketName = this.bucket.bucket;
+        this.websiteUrl = this.bucket.websiteEndpoint;
+
         this.registerOutputs({
+            bucket: this.bucket,
             bucketName: this.bucketName,
             websiteUrl: this.websiteUrl,
             objects: this.objects,
