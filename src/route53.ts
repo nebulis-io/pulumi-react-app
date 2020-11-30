@@ -23,7 +23,7 @@ export class ReactAppAliasRecord extends pulumi.ComponentResource {
     constructor(appName: string, args: ReactAppAliasRecordArgs, opts: pulumi.ComponentResourceOptions) {
         super("nebulis:ReactAppAliasRecord", appName, {}, opts);
         const domainParts = utils.getDomainAndSubdomain(args.domain);
-        const hostedZoneId = domainParts.parentDomain.apply(name => aws.route53.getZone({ name }, { async: true })).apply(zone => zone.zoneId);
+        const hostedZoneId = domainParts.parentDomain.apply(name => aws.route53.getZone({ name })).apply(zone => zone.zoneId);
         this.record = pulumi.output(
             new aws.route53.Record(
                 `${appName}-${args.domain}-aliasRecord`,
@@ -94,7 +94,7 @@ export class ReactAppCertificate extends pulumi.ComponentResource {
 
 
         const domainParts = utils.getDomainAndSubdomain(args.domain);
-        const hostedZoneId = domainParts.parentDomain.apply(name => aws.route53.getZone({ name }, { async: true })).apply(zone => zone.zoneId);
+        const hostedZoneId = domainParts.parentDomain.apply(name => aws.route53.getZone({ name })).apply(zone => zone.zoneId);
 
         this.certificateValidationDomain = pulumi.output(
             new aws.route53.Record(
